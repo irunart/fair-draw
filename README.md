@@ -17,14 +17,14 @@ To conduct a fair draw, follow these two phases:
 
 1.  **Prepare the List:** Create a text file (e.g., `candidates.txt`) with one participant name per line.
 2.  **Choose the Signal:** Publicly announce the **future signal** source.
-    *   *Example:* "We will use the last 2 digits of the Bitcoin USD closing price on CoinMarketCap for the 10 PM - 11 PM trading window tonight."
+    - _Example:_ "We will use the last 2 digits of the Bitcoin USD closing price on CoinMarketCap for the 10 PM - 11 PM trading window tonight."
 3.  **Publish:** Publish the full list file and this repository to all participants.
-    *   *Note:* Once published, the list **cannot** be changed.
+    - _Note:_ Once published, the list **cannot** be changed.
 
 ### Phase 2: The Reveal (After the Event)
 
 1.  **Get the Signal:** Wait for the event time to pass and retrieve the signal value.
-    *   *Example:* Bitcoin price is `$98,765.43` -> Signal is `43`.
+    - _Example:_ Bitcoin price is `$98,765.43` -> Signal is `43`.
 2.  **Run the Script:** Run the script with the participant file and the signal.
 
 ## Usage
@@ -49,15 +49,18 @@ python fair_draw.py candidates.txt "43" -n 3
 ```
 
 Output:
+
 ```text
 --- Fair Lucky Draw Results ---
 Future Signal: '43'
 Total Participants: 10
+Participant Hash: 548c9eec1d21f4f5ff02254266c19c794d4196724535f1da57b8fee701fd8121
+Seed:             47567774649538936044369692665710261716550568601311273110448917217524192329811
 ------------------------------
 Top 3 Winners:
-1. David
-2. Eve
-3. Bob
+1. Grace
+2. Heidi
+3. Charlie
 ------------------------------
 ```
 
@@ -70,15 +73,18 @@ python fair_draw.py candidates.txt "99.99" -n 3
 ```
 
 Output:
+
 ```text
 --- Fair Lucky Draw Results ---
 Future Signal: '99.99'
 Total Participants: 10
+Participant Hash: 548c9eec1d21f4f5ff02254266c19c794d4196724535f1da57b8fee701fd8121
+Seed:             64878408961966585079329822692674089190204533965471390227971372916984257242512
 ------------------------------
 Top 3 Winners:
-1. Judy
-2. David
-3. Frank
+1. Grace
+2. Heidi
+3. Bob
 ------------------------------
 ```
 
@@ -91,21 +97,25 @@ python fair_draw.py candidates.txt "43" -n 5
 ```
 
 Output:
+
 ```text
 --- Fair Lucky Draw Results ---
 Future Signal: '43'
 Total Participants: 10
+Participant Hash: 548c9eec1d21f4f5ff02254266c19c794d4196724535f1da57b8fee701fd8121
+Seed:             47567774649538936044369692665710261716550568601311273110448917217524192329811
 ------------------------------
 Top 5 Winners:
-1. David
-2. Eve
-3. Bob
-4. Heidi
-5. Grace
+1. Grace
+2. Heidi
+3. Charlie
+4. Ivan
+5. Frank
 ------------------------------
 ```
 
 ### Input File Format (`candidates.txt`)
+
 ```text
 Alice
 Bob
@@ -122,23 +132,20 @@ python test_fair_draw.py
 ```
 
 The tests verify:
-*   **Determinism:** Same input + same signal = same result.
-*   **Order Independence:** Input file order does not affect the outcome.
-*   **Signal Sensitivity:** Changing the signal changes the result.
-*   **Duplicate Handling:** Duplicates are handled correctly (changing the seed).
+
+- **Determinism:** Same input + same signal = same result.
+- **Order Independence:** Input file order does not affect the outcome.
+- **Signal Sensitivity:** Changing the signal changes the result.
+- **Duplicate Handling:** Duplicates are handled correctly (changing the seed).
 
 ## Algorithm
-
-
 
 1.  **Seed Generation:** `SHA-256(sorted(participants) + signal_string)` -> Integer.
 
 2.  **Shuffle:** `random.shuffle(sorted(participants))` seeded with the generated integer.
 
-
-
 **Key Features:**
 
-*   **Order Independent:** The order of names in the input file does *not* matter. `Alice, Bob` and `Bob, Alice` produce the exact same result.
+- **Order Independent:** The order of names in the input file does _not_ matter. `Alice, Bob` and `Bob, Alice` produce the exact same result.
 
-*   **Duplicate Sensitive:** If a name appears twice in the file, it is treated as two entries (increasing that person's probability). The seed will also change, resulting in a completely different shuffle.
+- **Duplicate Sensitive:** If a name appears twice in the file, it is treated as two entries (increasing that person's probability). The seed will also change, resulting in a completely different shuffle.
