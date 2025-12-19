@@ -1,6 +1,6 @@
 import unittest
 import os
-from fair_draw import get_fair_shuffle, load_participants
+from fair_draw import get_fair_shuffle, load_participants, calculate_participant_hash
 
 class TestFairDraw(unittest.TestCase):
     def setUp(self):
@@ -26,17 +26,26 @@ class TestFairDraw(unittest.TestCase):
         self.assertNotEqual(participants_orig, participants_rev)
         self.assertEqual(sorted(participants_orig), sorted(participants_rev))
 
-        result_orig = get_fair_shuffle(participants_orig, self.signal)
-        result_rev = get_fair_shuffle(participants_rev, self.signal)
+        res_orig, hash_orig, seed_orig = get_fair_shuffle(participants_orig, self.signal)
+        res_rev, hash_rev, seed_rev = get_fair_shuffle(participants_rev, self.signal)
         
-        self.assertEqual(result_orig, result_rev)
+        self.assertEqual(res_orig, res_rev)
+        self.assertEqual(hash_orig, hash_rev)
+        self.assertEqual(seed_orig, seed_rev)
+        self.assertIsInstance(seed_orig, int)
 
     def test_signal_sensitivity(self):
         """Test that different signals produce different results."""
         participants = load_participants(self.candidates_path)
-        result1 = get_fair_shuffle(participants, "Signal A")
-        result2 = get_fair_shuffle(participants, "Signal B")
-        self.assertNotEqual(result1, result2)
+        res1, hash1, seed1 = get_fair_shuffle(participants, "Signal A")
+        res2, hash2, seed2 = get_fair_shuffle(participants, "Signal B")
+        
+        # Participant hash should be the same
+        self.assertEqual(hash1, hash2)
+        # Seed and result should be different
+        self.assertNotEqual(seed1, seed2)
+        self.assertNotEqual(res1, res2)
+        self.assertIsInstance(seed1, int)
 
     def test_duplicate_handling(self):
         """Test that duplicates result in a different seed and thus different outcome."""
@@ -46,13 +55,49 @@ class TestFairDraw(unittest.TestCase):
         # Verify dup list is larger
         self.assertGreater(len(participants_dup), len(participants))
         
-        result_unique = get_fair_shuffle(participants, self.signal)
-        result_dup = get_fair_shuffle(participants_dup, self.signal)
+        res_unique, hash_unique, seed_unique = get_fair_shuffle(participants, self.signal)
+        res_dup, hash_dup, seed_dup = get_fair_shuffle(participants_dup, self.signal)
         
-        # The result lists will be different lengths, so they can't be equal.
-        # But specifically, we expect the shuffle order to be effectively different
-        # because the seed changed.
-        self.assertNotEqual(result_unique, result_dup)
+        # Participant hash should be different
+        self.assertNotEqual(hash_unique, hash_dup)
+        # Seed should be different
+        self.assertNotEqual(seed_unique, seed_dup)
+        # Result should be different
+        self.assertNotEqual(res_unique, res_dup)
+        self.assertIsInstance(seed_unique, int)
+
+    def test_empty_salt(self):
+        """Test that empty salt raises ValueError."""
+        participants = load_participants(self.candidates_path)
+        with self.assertRaises(ValueError):
+            get_fair_shuffle(participants, "")
+        with self.assertRaises(ValueError):
+            get_fair_shuffle(participants, "   ")
+        with self.assertRaises(ValueError):
+            get_fair_shuffle(participants, None)
+
+    def test_calculate_participant_hash(self):
+        """Test that participant hash is calculated correctly and order-independently."""
+        p1 = ["Alice", "Bob"]
+        p2 = ["Bob", "Alice"]
+        
+        h1 = calculate_participant_hash(p1)
+        h2 = calculate_participant_hash(p2)
+        
+        self.assertEqual(h1, h2)
+        self.assertIsInstance(h1, str)
+        self.assertEqual(len(h1), 64) # SHA-256 hex digest length
+
+    def test_hash_collision_resistance(self):
+        """Test that concatenation collisions are prevented."""
+        # These would produce the same string if simply joined: "AliceBob"
+        p1 = ["Alice", "Bob"]
+        p2 = ["Ali", "ceBob"]
+        
+        h1 = calculate_participant_hash(p1)
+        h2 = calculate_participant_hash(p2)
+        
+        self.assertNotEqual(h1, h2)
 
 if __name__ == '__main__':
     unittest.main()
